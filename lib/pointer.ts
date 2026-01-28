@@ -92,6 +92,8 @@ class Pointer<S extends object = JSONSchema> {
     // Crawl the object, one token at a time
     this.value = unwrapOrThrow(obj);
 
+    const errors: MissingPointerError[] = [];
+
     for (let i = 0; i < tokens.length; i++) {
       if (resolveIf$Ref(this, options, pathFromRoot)) {
         // The $ref path has changed, so append the remaining tokens to the path
@@ -120,10 +122,14 @@ class Pointer<S extends object = JSONSchema> {
         }
 
         this.value = null;
-        throw new MissingPointerError(token, decodeURI(this.originalPath));
+        errors.push(new MissingPointerError(token, decodeURI(this.originalPath)));
       } else {
         this.value = this.value[token];
       }
+    }
+
+    if (errors.length > 0) {
+      throw errors.length === 1 ? errors[0] : new AggregateError(errors, "Multiple missing pointer errors");
     }
 
     // Resolve the final value
